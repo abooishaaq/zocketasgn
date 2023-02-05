@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"os"
@@ -20,40 +21,32 @@ func NewCSV(file *os.File) *csv {
 	}
 }
 
-func (c *csv) Read() ([]string, error) {
-	var (
-		line []string
-		prev []byte
-	)
-
-	for {
-		buf := make([]byte, 1)
-		_, err := c.file.Read(buf)
-		if err != nil {
-			return nil, err
-		}
-
-		if buf[0] == byte(c.Comma) {
-			line = append(line, string(prev))
-			prev = []byte{}
-		} else if buf[0] == '\n' {
-			line = append(line, string(prev))
-			break
-		} else {
-			prev = append(prev, buf[0])
-		}
-	}
-
-	return line, nil
-}
-
 func (c *csv) ReadAll() ([][]string, error) {
+	reader := bufio.NewReader(c.file)
+
 	for {
-		line, err := c.Read()
+		line, err := reader.ReadBytes(byte('\n'))
+
 		if err != nil {
 			return c.Data, err
 		}
-		c.Data = append(c.Data, line)
+
+		line = line[:len(line)-1]
+		data := make([]string, 0)
+		prev := []byte{}
+
+		for i := 0; i < len(line); i++ {
+			if line[i] == byte(c.Comma) {
+				data = append(data, string(prev))
+				prev = []byte{}
+			} else {
+				prev = append(prev, line[i])
+			}
+		}
+		if err != nil {
+			return c.Data, err
+		}
+		c.Data = append(c.Data, data)
 	}
 }
 
